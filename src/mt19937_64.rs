@@ -27,12 +27,14 @@ const LM: Wrapping<u64> =  Wrapping(        0x7FFFFFFF); // Least significant 31
 #[allow(non_camel_case_types)]
 #[derive(Copy)]
 pub struct MT19937_64 {
+    next_u32: Option<u32>,
     idx: usize,
     state: [Wrapping<u64>; NN],
 }
 
 const UNINITIALIZED: MT19937_64 = MT19937_64 {
     idx: 0,
+    next_u32: None,
     state: [Wrapping(0); NN]
 };
 
@@ -92,7 +94,13 @@ impl<'a> SeedableRng<&'a [u64]> for MT19937_64 {
 impl Rng for MT19937_64 {
     #[inline]
     fn next_u32(&mut self) -> u32 {
-        self.next_u64() as u32
+        if let Some(n) = self.next_u32.take() {
+            n
+        } else {
+            let n64 = self.next_u64();
+            self.next_u32 = Some((n64 >> 32) as u32);
+            n64 as u32
+        }
     }
 
     #[inline]
